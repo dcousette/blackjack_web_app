@@ -98,9 +98,9 @@ end
 get '/game' do
   session[:turn] = session[:player_name]
   
-  suits = ['H','S','D','C']
-  values = ['2','3','4','5','6','7','8','9','10','A','K','Q','J']
-  session[:deck] = suits.product(values).shuffle! 
+  SUITS = ['H','S','D','C']
+  VALUES = ['2','3','4','5','6','7','8','9','10','A','K','Q','J']
+  session[:deck] = SUITS.product(VALUES).shuffle! 
   
   session[:dealer_cards] = []
   session[:player_cards] = []
