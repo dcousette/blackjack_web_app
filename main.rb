@@ -53,19 +53,21 @@ helpers do
   end
   
   def loser!(msg)
-    @error = "<strong>#{session[:player_name]} loses! </strong> #{msg}"
+    @loser = "<strong>#{session[:player_name]} loses $#{session[:bet_amount]}!</strong> #{msg}"
+    session[:cash_on_hand] -= session[:bet_amount]
     @show_hit_or_stay_buttons = false
     @show_replay_buttons = true 
   end
   
   def winner!(msg)
-    @success = "<strong>#{session[:player_name]} wins!</strong> #{msg}"
+    @winner = "<strong>#{session[:player_name]} wins $#{session[:bet_amount]}!</strong> #{msg}"
+    session[:cash_on_hand] += session[:bet_amount]
     @show_hit_or_stay_buttons = false
     @show_replay_buttons = true 
   end
   
   def tie!
-    @success = "#{session[:player_name]} and Dealer are tied at #{calculate_total(session[:player_cards])}!"
+    @winner = "#{session[:player_name]} and Dealer are tied at #{calculate_total(session[:player_cards])}!"
     @show_replay_buttons = true   
   end
 end
@@ -87,12 +89,13 @@ get '/new_player' do
 end
 
 post '/new_player' do
+  session[:cash_on_hand] = 500
   session[:player_name] = params[:user_name]
   if params[:user_name].empty?
     @error = "Please enter your name!"
     halt erb(:new_player)
   end
-  redirect '/game'
+  redirect '/bet'
 end
 
 get '/game' do
@@ -132,7 +135,7 @@ post '/game/player/hit' do
   elsif player_total > BLACKJACK_AMOUNT
     loser!("#{session[:player_name]} has busted! #{session[:player_name]} has #{calculate_total(session[:player_cards])}")
   end
-  erb :game
+  erb :game, layout: false 
 end
 
 post '/game/player/stay' do
@@ -159,7 +162,7 @@ get '/game/dealer' do
     #dealer hits 
     @show_dealer_hit_button = true 
   end
-  erb :game
+  erb :game, layout: false 
 end
 
 post '/game/dealer/hit' do
@@ -177,9 +180,30 @@ get '/game/compare' do
   else 
     tie!
   end
-  erb :game
+  erb :game, layout: false 
 end
 
 get '/game_over' do 
   erb :game_over
-end 
+end
+
+get '/bet' do 
+  if session[:cash_on_hand] > 0 
+    erb :bet
+  else
+    @error = "You ran out of money... let's start over... ok?"
+    erb :game_over
+  end
+end
+
+post '/bet' do
+  session[:bet_amount] = params[:bet_amount].to_i
+  if session[:bet_amount] <= 0
+    @error = "Stop being cheap! Your bet can't be less than 0!"
+    halt erb(:bet)
+  elsif session[:bet_amount] > session[:cash_on_hand]
+    @error = "You don't have enough money to make this bet!"
+    halt erb(:bet)
+  end
+  redirect '/game' 
+end
